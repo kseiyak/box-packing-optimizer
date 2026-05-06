@@ -12,24 +12,34 @@ if __package__ is None or __package__ == "":
 
 from box_packing.models import BoxSpec, ITEM_SPECS
 from box_packing.optimizer import optimize_sagawa_shipments
-from box_packing.visualizer import build_figure
+from box_packing.visualizer import build_figure, color_for_name
+
+LEGEND_ORDER = [
+    "50",
+    "60",
+    "70",
+    "80_small",
+    "80_medium",
+    "80_large",
+    "100_small",
+    "100_medium",
+    "100_large",
+]
 
 
 def _collect_fixed_counts() -> dict[str, int]:
     counts: dict[str, int] = {}
     st.subheader("固定箱の数量")
-    cols = st.columns(2)
     names = list(ITEM_SPECS.keys())
-    for idx, name in enumerate(names):
+    for name in names:
         spec = ITEM_SPECS[name]
-        with cols[idx % 2]:
-            value = st.number_input(
-                f"{name} ({spec.size[0]}x{spec.size[1]}x{spec.size[2]} mm)",
-                min_value=0,
-                value=0,
-                step=1,
-                key=f"fixed_{name}",
-            )
+        value = st.number_input(
+            f"{name} ({spec.size[0]}x{spec.size[1]}x{spec.size[2]} mm)",
+            min_value=0,
+            value=0,
+            step=1,
+            key=f"fixed_{name}",
+        )
         if value > 0:
             counts[name] = int(value)
     return counts
@@ -128,6 +138,32 @@ def main() -> None:
         st.write(
             "外形(mm): "
             f"{bundle.metrics.width_mm} x {bundle.metrics.depth_mm} x {bundle.metrics.height_mm}"
+        )
+        st.markdown("**凡例（箱タイプ → 色）**")
+        used_name_set = {item.item_name for item in bundle.packed_items}
+        used_names = [name for name in LEGEND_ORDER if name in used_name_set]
+        # カスタム箱など既定順にない名前は末尾へ
+        used_names.extend(sorted(name for name in used_name_set if name not in LEGEND_ORDER))
+        legend_items: list[str] = []
+        for name in used_names:
+            color = color_for_name(name)
+            legend_items.append(
+                (
+                    f"<div style='display:flex;align-items:center;gap:8px;padding:2px 0;'>"
+                    f"<span style='display:inline-block;width:14px;height:14px;background:{color};"
+                    f"border:1px solid #333;'></span>"
+                    f"<span>{name}</span>"
+                    f"</div>"
+                )
+            )
+        st.markdown(
+            (
+                "<div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));"
+                "column-gap:16px;row-gap:2px;'>"
+                + "".join(legend_items)
+                + "</div>"
+            ),
+            unsafe_allow_html=True,
         )
         zoom = st.slider(
             f"3D表示ズーム（便{idx}）",

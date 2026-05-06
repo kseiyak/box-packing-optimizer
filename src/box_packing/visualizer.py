@@ -8,16 +8,31 @@ from .optimizer import BundlePackingResult
 
 
 COLOR_MAP: Dict[str, str] = {
-    "50": "#2a9d8f",
-    "60": "#e76f51",
-    "70": "#e63946",
-    "80_small": "#457b9d",
-    "80_medium": "#f4a261",
-    "80_large": "#264653",
-    "100_small": "#8ab17d",
-    "100_medium": "#e9c46a",
-    "100_large": "#9d4edd",
+    "50": "#e6194B",        # red
+    "60": "#3cb44b",        # green
+    "70": "#4363d8",        # blue
+    "80_small": "#f58231",  # orange
+    "80_medium": "#911eb4", # purple
+    "80_large": "#46f0f0",  # cyan
+    "100_small": "#ffe119", # yellow
+    "100_medium": "#bcf60c",# lime
+    "100_large": "#800000", # maroon
 }
+
+CUSTOM_COLOR_POOL: List[str] = [
+    "#000000",  # black
+    "#008080",  # teal
+    "#a9a9a9",  # darkgray
+    "#ffd8b1",  # apricot
+    "#808000",  # olive
+]
+
+
+def color_for_name(name: str) -> str:
+    if name in COLOR_MAP:
+        return COLOR_MAP[name]
+    idx = sum(ord(c) for c in name) % len(CUSTOM_COLOR_POOL)
+    return CUSTOM_COLOR_POOL[idx]
 
 
 def _vertices(origin: Tuple[int, int, int], size: Tuple[int, int, int]) -> Tuple[List[int], List[int], List[int]]:
@@ -49,11 +64,12 @@ def _cuboid_mesh(
         j=j,
         k=k,
         color=color,
-        opacity=0.6,
+        opacity=0.95,
         name=legend_name,
         legendgroup=legend_name,
         hovertext=hover_text,
         hoverinfo="text",
+        flatshading=True,
     )
 
 
@@ -94,7 +110,10 @@ def _cuboid_edges(origin: Tuple[int, int, int], size: Tuple[int, int, int], colo
 
 
 def _outline_edges(size: Tuple[int, int, int]) -> go.Scatter3d:
-    return _cuboid_edges((0, 0, 0), size, "#111111")
+    trace = _cuboid_edges((0, 0, 0), size, "#b0b0b0")
+    trace.line.width = 4
+    trace.line.dash = "dash"
+    return trace
 
 
 def build_figure(result: BundlePackingResult) -> go.Figure:
@@ -102,7 +121,7 @@ def build_figure(result: BundlePackingResult) -> go.Figure:
     legend_seen: set[str] = set()
 
     for item in result.packed_items:
-        color = COLOR_MAP.get(item.item_name, "#3a86ff")
+        color = color_for_name(item.item_name)
         legend_name = f"{item.item_name}"
         hover_text = (
             f"{item.item_name}<br>"
