@@ -13,7 +13,7 @@
 ## 1. セットアップ (Windows / VS Code)
 
 ```powershell
-cd D:\Users\seiyak\Desktop\python
+cd <project-root>
 pip install -r src\box_packing\requirements.txt
 ```
 
