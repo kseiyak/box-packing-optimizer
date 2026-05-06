@@ -81,21 +81,39 @@ def main() -> None:
         save_html = st.checkbox("結果をHTML保存", value=False)
         html_name = st.text_input("保存ファイル名（拡張子不要）", value=default_name, disabled=not save_html)
 
-    if not run:
+    if "latest_plan" not in st.session_state:
+        st.session_state["latest_plan"] = None
+    if "latest_counts" not in st.session_state:
+        st.session_state["latest_counts"] = None
+    if "latest_error" not in st.session_state:
+        st.session_state["latest_error"] = None
+
+    if run:
+        if not merged_counts:
+            st.session_state["latest_error"] = "数量を1つ以上入力してください。"
+            st.session_state["latest_plan"] = None
+            st.session_state["latest_counts"] = None
+        else:
+            try:
+                plan = optimize_sagawa_shipments(merged_counts, custom_specs=custom_specs)
+                st.session_state["latest_plan"] = plan
+                st.session_state["latest_counts"] = merged_counts
+                st.session_state["latest_error"] = None
+            except Exception as exc:
+                st.session_state["latest_error"] = f"最適化中にエラー: {exc}"
+                st.session_state["latest_plan"] = None
+                st.session_state["latest_counts"] = None
+
+    if st.session_state["latest_error"]:
+        st.error(st.session_state["latest_error"])
         return
 
-    if not merged_counts:
-        st.error("数量を1つ以上入力してください。")
-        return
-
-    try:
-        plan = optimize_sagawa_shipments(merged_counts, custom_specs=custom_specs)
-    except Exception as exc:
-        st.error(f"最適化中にエラー: {exc}")
+    plan = st.session_state["latest_plan"]
+    if plan is None:
         return
 
     st.success(f"計算完了: {len(plan.bundles)}便")
-    st.write("入力アイテム:", merged_counts)
+    st.write("入力アイテム:", st.session_state["latest_counts"])
 
     output_dir = Path("outputs")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -111,9 +129,36 @@ def main() -> None:
             "外形(mm): "
             f"{bundle.metrics.width_mm} x {bundle.metrics.depth_mm} x {bundle.metrics.height_mm}"
         )
+        zoom = st.slider(
+            f"3D表示ズーム（便{idx}）",
+            min_value=0.6,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            key=f"zoom_bundle_{idx}",
+        )
 
         fig = build_figure(bundle)
-        st.plotly_chart(fig, use_container_width=True)
+        base_eye = dict(x=1.65, y=1.65, z=1.15)
+        fig.update_layout(
+            scene_camera=dict(
+                eye=dict(
+                    x=base_eye["x"] / zoom,
+                    y=base_eye["y"] / zoom,
+                    z=base_eye["z"] / zoom,
+                )
+            )
+        )
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                "displayModeBar": False,
+                "displaylogo": False,
+                "scrollZoom": True,
+                "doubleClick": "reset",
+            },
+        )
 
         if save_html:
             if len(plan.bundles) == 1:
@@ -130,4 +175,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
