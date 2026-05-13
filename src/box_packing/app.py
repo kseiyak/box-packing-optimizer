@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--counts",
         required=True,
-        help='例: "50=2,60=1,100_small=1" または JSON 文字列',
+        help='例: "50=2,60=1,100=1" または JSON 文字列',
     )
     parser.add_argument(
         "--output",

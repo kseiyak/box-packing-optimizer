@@ -11,12 +11,12 @@ COLOR_MAP: Dict[str, str] = {
     "50": "#e6194B",        # red
     "60": "#3cb44b",        # green
     "70": "#4363d8",        # blue
-    "80_small": "#f58231",  # orange
+    "80": "#f58231",        # orange
     "80_medium": "#911eb4", # purple
-    "80_large": "#46f0f0",  # cyan
-    "100_small": "#ffe119", # yellow
+    "80_small": "#46f0f0",  # cyan
+    "100": "#800000",       # maroon
     "100_medium": "#bcf60c",# lime
-    "100_large": "#800000", # maroon
+    "100_small": "#ffe119", # yellow
 }
 
 CUSTOM_COLOR_POOL: List[str] = [

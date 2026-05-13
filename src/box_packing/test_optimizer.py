@@ -30,14 +30,14 @@ def test_optimize_reports_size_class_and_longest_side() -> None:
 
 
 def test_constraints_flags_when_oversized() -> None:
-    result = optimize_sagawa_bundle({"100_large": 4})
+    result = optimize_sagawa_bundle({"100": 4})
     assert result.metrics.size_class <= SAGAWA_MAX_SIZE_CLASS
     assert result.metrics.longest_side_mm <= SAGAWA_MAX_LONGEST_MM
     assert result.success
 
 
 def test_shipments_auto_split_when_needed() -> None:
-    plan = optimize_sagawa_shipments({"100_large": 5})
+    plan = optimize_sagawa_shipments({"100": 5})
     assert len(plan.bundles) >= 2
     assert all(bundle.success for bundle in plan.bundles)
 

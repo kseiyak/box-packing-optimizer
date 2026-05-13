@@ -50,12 +50,13 @@ ITEM_SPECS: Dict[str, BoxSpec] = {
     "50": BoxSpec("50", (180, 210, 112)),
     "60": BoxSpec("60", (185, 240, 150)),
     "70": BoxSpec("70", (220, 310, 145)),
-    "80_small": BoxSpec("80_small", (310, 220, 230)),
-    "80_medium": BoxSpec("80_medium", (310, 220, 150)),
-    "80_large": BoxSpec("80_large", (310, 220, 100)),
-    "100_small": BoxSpec("100_small", (290, 380, 100)),
+    "80": BoxSpec("80", (310, 220, 230)),
+    "80_medium": BoxSpec("80_medium", (310, 220, 190)),
+    "80_small": BoxSpec("80_small", (310, 220, 100)),
+    "100": BoxSpec("100", (290, 380, 300)),
     "100_medium": BoxSpec("100_medium", (290, 380, 200)),
-    "100_large": BoxSpec("100_large", (290, 380, 300)),
+    "100_small": BoxSpec("100_small", (290, 380, 100)),
+    "120": BoxSpec("120", (400, 540, 250)),
 }
 
 # NOTE:

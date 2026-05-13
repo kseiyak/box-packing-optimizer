@@ -36,11 +36,17 @@ class BoxPackingGui:
         self.output_var = tk.StringVar(value=self._default_output_path())
         self.open_browser_var = tk.BooleanVar(value=True)
         self.result_var = tk.StringVar(value="数量を入力して「最適化して可視化」を押してください。")
-        self.custom_name_var = tk.StringVar(value="custom_100_cut")
-        self.custom_w_var = tk.StringVar(value="")
-        self.custom_d_var = tk.StringVar(value="")
-        self.custom_h_var = tk.StringVar(value="")
-        self.custom_count_var = tk.StringVar(value="0")
+        self.custom_vars: list[dict[str, tk.StringVar]] = []
+        for idx in range(1, 5):
+            self.custom_vars.append(
+                {
+                    "name": tk.StringVar(value=f"custom_{idx}"),
+                    "w": tk.StringVar(value=""),
+                    "d": tk.StringVar(value=""),
+                    "h": tk.StringVar(value=""),
+                    "count": tk.StringVar(value="0"),
+                }
+            )
 
         self._build_ui()
 
@@ -80,18 +86,22 @@ class BoxPackingGui:
             row=2, column=0, sticky="w", pady=(8, 0)
         )
 
-        custom_frame = tk.LabelFrame(self.root, text="カスタム箱（任意）", padx=10, pady=8)
+        custom_frame = tk.LabelFrame(self.root, text="カスタム箱（任意・最大4種類）", padx=10, pady=8)
         custom_frame.pack(fill="x", padx=16, pady=(0, 6))
-        tk.Label(custom_frame, text="ラベル").grid(row=0, column=0, sticky="w")
-        tk.Entry(custom_frame, textvariable=self.custom_name_var, width=18).grid(row=1, column=0, padx=(0, 8), pady=(4, 0))
-        tk.Label(custom_frame, text="縦(mm)").grid(row=0, column=1, sticky="w")
-        tk.Entry(custom_frame, textvariable=self.custom_w_var, width=8).grid(row=1, column=1, padx=(0, 8), pady=(4, 0))
-        tk.Label(custom_frame, text="横(mm)").grid(row=0, column=2, sticky="w")
-        tk.Entry(custom_frame, textvariable=self.custom_d_var, width=8).grid(row=1, column=2, padx=(0, 8), pady=(4, 0))
-        tk.Label(custom_frame, text="高さ(mm)").grid(row=0, column=3, sticky="w")
-        tk.Entry(custom_frame, textvariable=self.custom_h_var, width=8).grid(row=1, column=3, padx=(0, 8), pady=(4, 0))
-        tk.Label(custom_frame, text="数量").grid(row=0, column=4, sticky="w")
-        tk.Entry(custom_frame, textvariable=self.custom_count_var, width=8).grid(row=1, column=4, pady=(4, 0))
+        tk.Label(custom_frame, text="No").grid(row=0, column=0, sticky="w")
+        tk.Label(custom_frame, text="ラベル").grid(row=0, column=1, sticky="w")
+        tk.Label(custom_frame, text="縦(mm)").grid(row=0, column=2, sticky="w")
+        tk.Label(custom_frame, text="横(mm)").grid(row=0, column=3, sticky="w")
+        tk.Label(custom_frame, text="高さ(mm)").grid(row=0, column=4, sticky="w")
+        tk.Label(custom_frame, text="数量").grid(row=0, column=5, sticky="w")
+        for idx, vars_ in enumerate(self.custom_vars, start=1):
+            row = idx
+            tk.Label(custom_frame, text=str(idx)).grid(row=row, column=0, sticky="w", pady=(4, 0))
+            tk.Entry(custom_frame, textvariable=vars_["name"], width=16).grid(row=row, column=1, padx=(0, 8), pady=(4, 0))
+            tk.Entry(custom_frame, textvariable=vars_["w"], width=8).grid(row=row, column=2, padx=(0, 8), pady=(4, 0))
+            tk.Entry(custom_frame, textvariable=vars_["d"], width=8).grid(row=row, column=3, padx=(0, 8), pady=(4, 0))
+            tk.Entry(custom_frame, textvariable=vars_["h"], width=8).grid(row=row, column=4, padx=(0, 8), pady=(4, 0))
+            tk.Entry(custom_frame, textvariable=vars_["count"], width=8).grid(row=row, column=5, pady=(4, 0))
 
         tk.Button(
             self.root,
@@ -123,19 +133,25 @@ class BoxPackingGui:
         return {k: v for k, v in counts.items() if v > 0}
 
     def _collect_custom(self) -> tuple[dict[str, int], dict[str, BoxSpec]]:
-        custom_count = _parse_count(self.custom_count_var.get())
-        if custom_count == 0:
-            return {}, {}
-
-        name = self.custom_name_var.get().strip() or "custom_box"
-        w = int(self.custom_w_var.get().strip())
-        d = int(self.custom_d_var.get().strip())
-        h = int(self.custom_h_var.get().strip())
-        if w <= 0 or d <= 0 or h <= 0:
-            raise ValueError("カスタム箱の縦横高さは1以上の整数で入力してください。")
-
-        custom_spec = BoxSpec(name=name, size=(w, d, h))
-        return {name: custom_count}, {name: custom_spec}
+        counts: dict[str, int] = {}
+        specs: dict[str, BoxSpec] = {}
+        for idx, vars_ in enumerate(self.custom_vars, start=1):
+            custom_count = _parse_count(vars_["count"].get())
+            if custom_count == 0:
+                continue
+            name = vars_["name"].get().strip() or f"custom_box_{idx}"
+            w = int(vars_["w"].get().strip())
+            d = int(vars_["d"].get().strip())
+            h = int(vars_["h"].get().strip())
+            if w <= 0 or d <= 0 or h <= 0:
+                raise ValueError("カスタム箱の縦横高さは1以上の整数で入力してください。")
+            if name in ITEM_SPECS:
+                name = f"{name}_custom"
+            while name in specs:
+                name = f"{name}_x"
+            specs[name] = BoxSpec(name=name, size=(w, d, h))
+            counts[name] = custom_count
+        return counts, specs
 
     def _run(self) -> None:
         try:

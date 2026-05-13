@@ -12,18 +12,24 @@ if __package__ is None or __package__ == "":
 
 from box_packing.models import BoxSpec, ITEM_SPECS
 from box_packing.optimizer import optimize_sagawa_shipments
-from box_packing.visualizer import build_figure, color_for_name
+from box_packing.visualizer import COLOR_MAP, build_figure
+
+try:
+    from box_packing.visualizer import color_for_name
+except ImportError:
+    def color_for_name(name: str) -> str:
+        return COLOR_MAP.get(name, "#3a86ff")
 
 LEGEND_ORDER = [
     "50",
     "60",
     "70",
-    "80_small",
+    "80",
     "80_medium",
-    "80_large",
-    "100_small",
+    "80_small",
+    "100",
     "100_medium",
-    "100_large",
+    "100_small",
 ]
 
 
@@ -51,24 +57,35 @@ def _collect_custom_box() -> tuple[dict[str, int], dict[str, BoxSpec]]:
     if not custom_enabled:
         return {}, {}
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        name = st.text_input("ラベル", value="custom_100_cut")
-    with c2:
-        w = st.number_input("縦(mm)", min_value=1, value=220, step=1)
-    with c3:
-        d = st.number_input("横(mm)", min_value=1, value=310, step=1)
-    with c4:
-        h = st.number_input("高さ(mm)", min_value=1, value=145, step=1)
-    with c5:
-        count = st.number_input("数量", min_value=0, value=0, step=1)
+    counts: dict[str, int] = {}
+    specs: dict[str, BoxSpec] = {}
 
-    if count <= 0:
-        return {}, {}
+    for idx in range(1, 5):
+        st.markdown(f"**カスタム箱{idx}**")
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1:
+            name = st.text_input("ラベル", value=f"custom_{idx}", key=f"custom_name_{idx}")
+        with c2:
+            w = st.number_input("縦(mm)", min_value=1, value=220, step=1, key=f"custom_w_{idx}")
+        with c3:
+            d = st.number_input("横(mm)", min_value=1, value=310, step=1, key=f"custom_d_{idx}")
+        with c4:
+            h = st.number_input("高さ(mm)", min_value=1, value=145, step=1, key=f"custom_h_{idx}")
+        with c5:
+            count = st.number_input("数量", min_value=0, value=0, step=1, key=f"custom_count_{idx}")
 
-    label = name.strip() or "custom_box"
-    spec = BoxSpec(label, (int(w), int(d), int(h)))
-    return {label: int(count)}, {label: spec}
+        if count <= 0:
+            continue
+
+        label = name.strip() or f"custom_box_{idx}"
+        if label in ITEM_SPECS:
+            label = f"{label}_custom"
+        while label in specs:
+            label = f"{label}_x"
+        specs[label] = BoxSpec(label, (int(w), int(d), int(h)))
+        counts[label] = int(count)
+
+    return counts, specs
 
 
 def main() -> None:
