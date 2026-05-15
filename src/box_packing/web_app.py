@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import sys
 
+import plotly.graph_objects as go
 import streamlit as st
 
 # `streamlit run src/box_packing/web_app.py` での実行に対応
@@ -31,6 +32,19 @@ LEGEND_ORDER = [
     "100_medium",
     "100_small",
 ]
+
+SHORT_LABELS = {
+    "50": "50",
+    "60": "60",
+    "70": "70",
+    "80": "80",
+    "80_medium": "80M",
+    "80_small": "80S",
+    "100": "100",
+    "100_medium": "100M",
+    "100_small": "100S",
+    "120": "120",
+}
 
 
 def _collect_fixed_counts() -> dict[str, int]:
@@ -107,6 +121,7 @@ def main() -> None:
         default_name = f"box_packing_web_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         save_html = st.checkbox("結果をHTML保存", value=False)
         html_name = st.text_input("保存ファイル名（拡張子不要）", value=default_name, disabled=not save_html)
+    show_box_labels = st.checkbox("箱面ラベル表示（ON/OFF）", value=True)
 
     if "latest_plan" not in st.session_state:
         st.session_state["latest_plan"] = None
@@ -114,6 +129,8 @@ def main() -> None:
         st.session_state["latest_counts"] = None
     if "latest_error" not in st.session_state:
         st.session_state["latest_error"] = None
+    if "latest_custom_alias" not in st.session_state:
+        st.session_state["latest_custom_alias"] = {}
 
     if run:
         if not merged_counts:
@@ -126,10 +143,14 @@ def main() -> None:
                 st.session_state["latest_plan"] = plan
                 st.session_state["latest_counts"] = merged_counts
                 st.session_state["latest_error"] = None
+                st.session_state["latest_custom_alias"] = {
+                    name: f"Cus{idx}" for idx, name in enumerate(custom_specs.keys(), start=1)
+                }
             except Exception as exc:
                 st.session_state["latest_error"] = f"最適化中にエラー: {exc}"
                 st.session_state["latest_plan"] = None
                 st.session_state["latest_counts"] = None
+                st.session_state["latest_custom_alias"] = {}
 
     if st.session_state["latest_error"]:
         st.error(st.session_state["latest_error"])
@@ -141,6 +162,9 @@ def main() -> None:
 
     st.success(f"計算完了: {len(plan.bundles)}便")
     st.write("入力アイテム:", st.session_state["latest_counts"])
+    if st.session_state["latest_custom_alias"]:
+        alias_text = ", ".join(f"{alias}={name}" for name, alias in st.session_state["latest_custom_alias"].items())
+        st.caption(f"カスタム箱ラベル: {alias_text}")
 
     output_dir = Path("outputs")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -192,6 +216,54 @@ def main() -> None:
         )
 
         fig = build_figure(bundle)
+        if show_box_labels:
+            label_x: list[float] = []
+            label_y: list[float] = []
+            label_z: list[float] = []
+            label_text: list[str] = []
+            bg_x: list[float] = []
+            bg_y: list[float] = []
+            bg_z: list[float] = []
+            for item in bundle.packed_items:
+                lx = item.origin[0] + (item.size[0] / 2)
+                ly = item.origin[1] + (item.size[1] / 2)
+                lz = item.origin[2] + (item.size[2] / 2)
+                label_x.append(lx)
+                label_y.append(ly)
+                label_z.append(lz)
+                short_name = SHORT_LABELS.get(item.item_name, st.session_state["latest_custom_alias"].get(item.item_name, item.item_name))
+                label_text.append(f"<b>{short_name}</b>")
+                bg_x.append(lx)
+                bg_y.append(ly)
+                bg_z.append(lz - 1)
+            fig.add_trace(
+                go.Scatter3d(
+                    x=bg_x,
+                    y=bg_y,
+                    z=bg_z,
+                    mode="markers",
+                    marker=dict(
+                        size=16,
+                        color="rgba(0,0,0,0.55)",
+                        symbol="square",
+                    ),
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+            fig.add_trace(
+                go.Scatter3d(
+                    x=label_x,
+                    y=label_y,
+                    z=label_z,
+                    mode="text",
+                    text=label_text,
+                    textfont=dict(size=20, color="#ffffff"),
+                    textposition="middle center",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
         base_eye = dict(x=1.65, y=1.65, z=1.15)
         fig.update_layout(
             scene_camera=dict(
@@ -200,7 +272,8 @@ def main() -> None:
                     y=base_eye["y"] / zoom,
                     z=base_eye["z"] / zoom,
                 )
-            )
+            ),
+            hovermode="closest",
         )
         st.plotly_chart(
             fig,
@@ -212,6 +285,7 @@ def main() -> None:
                 "doubleClick": "reset",
             },
         )
+        st.caption("箱をタップ/ホバーすると、箱名・サイズ・座標の詳細を確認できます。")
 
         if save_html:
             if len(plan.bundles) == 1:
