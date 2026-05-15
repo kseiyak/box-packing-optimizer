@@ -41,9 +41,9 @@ class BoxPackingGui:
             self.custom_vars.append(
                 {
                     "name": tk.StringVar(value=f"custom_{idx}"),
-                    "w": tk.StringVar(value=""),
-                    "d": tk.StringVar(value=""),
-                    "h": tk.StringVar(value=""),
+                    "w": tk.StringVar(value="270"),
+                    "d": tk.StringVar(value="380"),
+                    "h": tk.StringVar(value="180"),
                     "count": tk.StringVar(value="0"),
                 }
             )

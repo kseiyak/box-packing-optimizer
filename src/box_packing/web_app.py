@@ -66,11 +66,11 @@ def _collect_custom_box() -> tuple[dict[str, int], dict[str, BoxSpec]]:
         with c1:
             name = st.text_input("ラベル", value=f"custom_{idx}", key=f"custom_name_{idx}")
         with c2:
-            w = st.number_input("縦(mm)", min_value=1, value=220, step=1, key=f"custom_w_{idx}")
+            w = st.number_input("縦(mm)", min_value=1, value=270, step=1, key=f"custom_w_{idx}")
         with c3:
-            d = st.number_input("横(mm)", min_value=1, value=310, step=1, key=f"custom_d_{idx}")
+            d = st.number_input("横(mm)", min_value=1, value=380, step=1, key=f"custom_d_{idx}")
         with c4:
-            h = st.number_input("高さ(mm)", min_value=1, value=145, step=1, key=f"custom_h_{idx}")
+            h = st.number_input("高さ(mm)", min_value=1, value=180, step=1, key=f"custom_h_{idx}")
         with c5:
             count = st.number_input("数量", min_value=0, value=0, step=1, key=f"custom_count_{idx}")
 
